@@ -263,9 +263,9 @@ box with thousands of registrations that is a lot of series. Point `-trunkfile`
 at a file with **one peer name per line** to keep only the trunks you care about:
 
 ```
-BhopalVodaV92
-SIPP229
-SIPS228
+1001
+cisphone001
+trunk_outbound_primary
 ```
 
 Generate it from the live peers that are `OK`:
