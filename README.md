@@ -401,4 +401,16 @@ Do **not** set `-ari-url` on servers that don't run ARI — it just logs
 
 ## License
 
-MIT (or your choice).
+This is **proprietary freeware**. The source code is **not** provided and
+remains the property of the author.
+
+You may download, install, and run this binary free of charge for both personal
+and commercial use. You may **not** reverse engineer, modify, redistribute,
+resell, or sublicense it. See the [LICENSE](LICENSE) file for the full terms.
+
+The software is provided "as is", without warranty of any kind.
+
+## Support
+
+This project does not provide source code or accept code contributions. For
+bug reports or feature requests, please open an issue.
