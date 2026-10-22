@@ -33,7 +33,6 @@ dependencies.
 
 - [How it works](#how-it-works)
 - [Metrics](#metrics)
-- [Build](#build)
 - [AMI setup (read-only user)](#ami-setup-read-only-user)
 - [ARI setup (optional, read-only)](#ari-setup-optional-read-only)
 - [Run](#run)
@@ -145,20 +144,6 @@ All metrics are prefixed `asterisk_`. Key ones:
 | `asterisk_exporter_events_processed_total` | counter | AMI events processed |
 | `asterisk_exporter_events_dropped_total` | counter | AMI events dropped (buffer full) — should stay 0 |
 | `asterisk_exporter_scrape_errors_total` | counter | Failed AMI **action** polls (not events) |
-
----
-
-## Build
-
-Requires Go 1.23+.
-
-```bash
-git clone https://github.com/<you>/asterisk-exporter.git
-cd asterisk-exporter
-CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o asterisk-exporter .
-```
-
-This produces a single static binary `asterisk-exporter`.
 
 ---
 
