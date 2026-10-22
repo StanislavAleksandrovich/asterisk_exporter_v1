@@ -5,7 +5,7 @@ It exposes live call, channel, trunk, voice-quality, ARI/Stasis and internal-hea
 metrics over an HTTP `/metrics` endpoint, suitable for Prometheus + Grafana.
 
 Works with **chan_sip**, **PJSIP** and **ARI** based Asterisk servers (tested on
-Asterisk 18, 20 and 22). A single static Go binary — no Python, no runtime
+Asterisk 18, 20 and 22).
 dependencies.
 
 ---
