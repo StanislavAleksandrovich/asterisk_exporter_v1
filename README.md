@@ -6,7 +6,6 @@ metrics over an HTTP `/metrics` endpoint, suitable for Prometheus + Grafana.
 
 Works with **chan_sip**, **PJSIP** and **ARI** based Asterisk servers (tested on
 Asterisk 18, 20 and 22).
-dependencies.
 
 ---
 
@@ -24,6 +23,11 @@ dependencies.
   `asterisk_ami_connected` accurate.
 - **Hot-reloadable trunk filter** — edit `trunks.txt` and it takes effect on the
   next scrape, no restart.
+- **Outbound dials per trunk** — counts the channels currently running `Dial()`
+  towards each trunk (chan_sip, PJSIP, IAX2 dial strings), straight from AMI. No
+  `core show channels | grep` scripts needed.
+- **Textfile collector** — like node_exporter: drop `*.prom` files written by your
+  own scripts into a folder and they appear on `/metrics`, without rebuilding.
 - **Optional ARI collector** — registered Stasis apps, bridge counts and bridge
   leak detection over ARI HTTP.
 
@@ -38,6 +42,8 @@ dependencies.
 - [Run](#run)
 - [Flags](#flags)
 - [The trunk filter (`trunks.txt`)](#the-trunk-filter-trunkstxt)
+- [Outbound dials per trunk](#outbound-dials-per-trunk)
+- [Textfile collector](#textfile-collector)
 - [systemd service](#systemd-service)
 - [Prometheus scrape config](#prometheus-scrape-config)
 - [Grafana dashboard](#grafana-dashboard)
@@ -101,6 +107,7 @@ All metrics are prefixed `asterisk_`. Key ones:
 | `asterisk_channels_by_state{state}` | gauge | Active channels by channel state |
 | `asterisk_channels_by_context{context}` | gauge | Active channels by dialplan context |
 | `asterisk_long_calls{over}` | gauge | Active calls longer than each threshold (5m/15m/30m) |
+| `asterisk_outbound_dials{trunk}` | gauge | Channels currently running `Dial()` towards each trunk (see [Outbound dials per trunk](#outbound-dials-per-trunk)) |
 
 ### chan_sip
 | Metric | Type | Description |
@@ -145,7 +152,15 @@ All metrics are prefixed `asterisk_`. Key ones:
 | `asterisk_exporter_events_dropped_total` | counter | AMI events dropped (buffer full) — should stay 0 |
 | `asterisk_exporter_scrape_errors_total` | counter | Failed AMI **action** polls (not events) |
 
+### Textfile collector (only with `-textfile-dir`)
+| Metric | Type | Description |
+|---|---|---|
+| *(your metrics)* | any | Everything in the `*.prom` files |
+| `asterisk_textfile_scrape_error{file}` | gauge | 1 if that file was skipped this scrape (reason in the log), else 0 |
+| `asterisk_textfile_mtime_seconds{file}` | gauge | Last modification time of the file — alert if your script stops updating it |
+
 ---
+
 
 ## AMI setup (read-only user)
 
@@ -233,6 +248,7 @@ Protect `/metrics` with basic auth by pointing `-authfile` at a
 | `-qos-poll-interval` | `30s` | Heavy QoS/CLI poll interval |
 | `-event-buffer` | `10000` | Bounded event channel size (drop-on-full) |
 | `-trunkfile` | | File of peer names to filter chan_sip peers (hot-reloaded) |
+| `-textfile-dir` | | Folder of `*.prom` files to add to `/metrics` (empty = off) |
 | `-collect-ami-events` | `true` | Real-time AMI event listener |
 | `-collect-ami-poll` | `true` | Periodic AMI action poller |
 | `-collect-core-active` | `true` | Active call/channel gauges |
@@ -245,6 +261,7 @@ Protect `/metrics` with basic auth by pointing `-authfile` at a
 | `-collect-pjsip-endpoints` | `true` | PJSIP endpoints/RTT |
 | `-collect-pjsip-qos` | `true` | PJSIP QoS |
 | `-collect-bridges` | `true` | Bridge counts + empty bridges (AMI BridgeList) |
+| `-collect-outbound-dials` | `true` | Active `Dial()` channels per target trunk |
 | `-collect-taskprocessors` | `false` | Taskprocessor health (needs command class) |
 | `-collect-ari` | `false` | ARI/Stasis metrics |
 | `-collect-stasis-channels` | `true` | Stasis channel count (needs collect-ari) |
@@ -278,6 +295,86 @@ asterisk -rx "sip show peers" | grep ' OK ' | awk '{print $1}' | cut -d/ -f1 | s
 
 The file is **re-read automatically** on each poll (cached by modification
 time), so editing it takes effect on the next scrape — no restart needed.
+
+---
+
+## Outbound dials per trunk
+
+`asterisk_outbound_dials{trunk}` answers "how many channels are dialling trunk X
+right now?" — the number people usually get with
+`asterisk -rx "core show channels" | grep "Dial(SIP/MyTrunk/" | wc -l`, but for
+every trunk at once, on chan_sip and PJSIP alike, with no script.
+
+It is computed from the same `CoreShowChannels` poll the exporter already does
+(no extra AMI command): for each channel whose `Application` is `Dial`, the trunk
+is read from the first argument of `Dial()`:
+
+| Dial data | trunk label |
+|---|---|
+| `SIP/MyTrunk/0987654321` | `MyTrunk` |
+| `SIP/0987654321@MyTrunk` | `MyTrunk` |
+| `PJSIP/0987654321@MyTrunk` | `MyTrunk` |
+| `PJSIP/MyTrunk/sip:0987654321@10.0.0.1` | `MyTrunk` |
+| `SIP/MyTrunk:5060/0987654321,60,tT` | `MyTrunk` (port and options ignored) |
+| `SIP/A/1&PJSIP/2@B` | `A` and `B` (each once) |
+| `Local/100@from-internal` | not counted (internal hop) |
+| anything unparsable | `unknown` (still counted) |
+
+Notes:
+- The answering legs (`AppDial`) are not counted, so the value is one per dialling
+  channel, matching the `grep | wc -l` count.
+- Calls placed by `Queue()`, `Originate` or ARI without `Dial()` are not included —
+  for those use `asterisk_channels_by_context` / `asterisk_sip_channel_detail`.
+- Turn it off with `-collect-outbound-dials=false`.
+
+Check it against the CLI on any box:
+
+```bash
+asterisk -rx "core show channels concise" | awk -F'!' '$6=="Dial"{print $7}' \
+  | cut -d, -f1 | tr '&' '\n' | grep -v '^Local/' \
+  | sed -E 's#^[^/]+/([^/]*@)?([^/@:]+).*#\2#' | sort | uniq -c
+```
+
+---
+
+## Textfile collector
+
+For anything site-specific that the exporter does not collect, write it to a
+file from your own script — the same idea as node_exporter's textfile collector.
+
+```bash
+mkdir -p /etc/asterisk_exporter/textfile
+# add to the exporter: -textfile-dir /etc/asterisk_exporter/textfile
+```
+
+Example script (run every minute from cron or a systemd timer). Write to a temp
+file and `mv` it, so the exporter never reads a half-written file:
+
+```bash
+#!/bin/sh
+dir=/etc/asterisk_exporter/textfile
+n=$(asterisk -rx "queue show support" | grep -c "(In use)")
+cat > "$dir/queue.prom.$$" <<EOF
+# HELP site_queue_agents_busy Agents busy in queue support
+# TYPE site_queue_agents_busy gauge
+site_queue_agents_busy{queue="support"} $n
+EOF
+mv "$dir/queue.prom.$$" "$dir/queue.prom"
+```
+
+Rules — a bad file is skipped as a whole and never breaks `/metrics`:
+- only `*.prom` files are read (hidden files and other extensions are ignored),
+  in name order, re-read on every scrape;
+- standard Prometheus text format; **the last line must end with a newline**;
+- a metric name used by the exporter itself (e.g. `asterisk_up`) is rejected, so
+  built-in metrics can never be overwritten — use your own prefix such as `site_`;
+- no client-side timestamps; at most 4 MiB per file and 200 files;
+- the same metric may be spread over several files, but the same series twice,
+  or a different `# TYPE`, makes the later file be skipped.
+
+A skipped file shows `asterisk_textfile_scrape_error{file="x.prom"} 1` and the
+reason is logged once. Alert on a stale script with
+`time() - asterisk_textfile_mtime_seconds > 300`.
 
 ---
 
@@ -379,6 +476,11 @@ Do **not** set `-ari-url` on servers that don't run ARI — it just logs
   `asterisk -rx "http show status"` (bindport) and `ari.conf`.
 - **Peers/registrations not showing after editing trunks.txt** — they appear on
   the next scrape automatically; no restart needed.
+- **`asterisk_textfile_scrape_error{file=...} 1`** — that file was skipped; the
+  exporter log says why (parse error, missing final newline, built-in name, …).
+- **Outbound dials lower than expected** — only channels running `Dial()` are
+  counted; `Queue()`/`Originate`/ARI calls are not. Compare with the CLI command in
+  [Outbound dials per trunk](#outbound-dials-per-trunk).
 - **High-cardinality / huge bridge counts** — if a box is leaking bridges
   (`asterisk_bridges_empty` growing for days), that is an ARI-app bug on the
   Asterisk side, not the exporter. On such a box you can reduce load with
@@ -400,17 +502,3 @@ Do **not** set `-ari-url` on servers that don't run ARI — it just logs
 ---
 
 ## License
-
-This is **proprietary freeware**. The source code is **not** provided and
-remains the property of the author.
-
-You may download, install, and run this binary free of charge for both personal
-and commercial use. You may **not** reverse engineer, modify, redistribute,
-resell, or sublicense it. See the [LICENSE](LICENSE) file for the full terms.
-
-The software is provided "as is", without warranty of any kind.
-
-## Support
-
-This project does not provide source code or accept code contributions. For
-bug reports or feature requests, please open an issue.
