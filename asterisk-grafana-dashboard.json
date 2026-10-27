@@ -1,0 +1,5248 @@
+{
+  "title": "Asterisk \u2014 Overview",
+  "uid": "asterisk-exporter-overview",
+  "tags": [
+    "asterisk",
+    "voip",
+    "ami",
+    "ari"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "schemaVersion": 39,
+  "version": 1,
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "description": "Asterisk exporter dashboard: live status + history for calls, trunks, voice quality, ARI and Asterisk internals.",
+  "timepicker": {
+    "refresh_intervals": [
+      "15s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "refresh": 1,
+        "regex": "",
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "job",
+        "label": "Job",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(asterisk_up, job)",
+          "refId": "j"
+        },
+        "definition": "label_values(asterisk_up, job)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {},
+        "sort": 1,
+        "hide": 0
+      },
+      {
+        "name": "instance",
+        "label": "Server",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(asterisk_up{job=~\"$job\"}, instance)",
+          "refId": "q"
+        },
+        "definition": "label_values(asterisk_up{job=~\"$job\"}, instance)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1,
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "text",
+      "id": 1,
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Asterisk monitoring\n**Top row = right now. Every graph below = history** (use the time picker top-right; default last 6 h, refresh 30 s).\nPick one or more servers in **Server** above. Hover the **\u24d8** on any panel for what it means and what \"bad\" looks like.\n\n| Term | Meaning |\n|---|---|\n| **Channel** | one call leg. A normal call = 2 channels (caller side + callee side). Box load = channels. |\n| **Call** | channels grouped into one conversation (Linkedid). Includes ARI-originated calls. |\n| **Asterisk active calls** | Asterisk's own number (`core show calls`): only channels running dialplan, so ARI-originated legs are *not* counted. On ARI boxes it is much lower than *Call*. |\n| **ASR** | answered \u00f7 attempted calls. Trend metric; CDR is the billing-grade source. |\n"
+      },
+      "transparent": true
+    },
+    {
+      "type": "row",
+      "id": 2,
+      "title": "Overview \u2014 right now",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Asterisk",
+      "description": "Exporter can talk to Asterisk over AMI. DOWN = Asterisk stopped, AMI disabled, or wrong AMI credentials. While DOWN, other panels show the last known values.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "min(asterisk_up{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "AMI connection",
+      "description": "Live AMI socket. Flaps here with Asterisk UP usually mean network or manager.conf issues.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "min(asterisk_ami_connected{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 5,
+      "title": "ARI",
+      "description": "ARI HTTP answered with valid credentials. N/A = ARI collector not configured on this server (normal for non-ARI boxes).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "min(asterisk_ari_up{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "noValue": "N/A"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 6,
+      "title": "Version",
+      "description": "Asterisk version reported over AMI.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (version) (asterisk_build_info{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{version}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "name",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 7,
+      "title": "Uptime",
+      "description": "Time since Asterisk started. A sudden drop to minutes = Asterisk restarted.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "min(asterisk_uptime_seconds{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 8,
+      "title": "Since last reload",
+      "description": "Time since the last 'core reload' / module reload.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 9,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "min(asterisk_last_reload_seconds{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 9,
+      "title": "Calls now",
+      "description": "Active calls (one per conversation, includes ARI-originated). Sparkline = recent trend.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_active_calls{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 10,
+      "title": "Channels now",
+      "description": "Active channels = call legs = real load on the box (CPU, RTP ports, licences).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 13,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_active_channels{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 11,
+      "title": "Asterisk active calls",
+      "description": "Asterisk's own count from 'core show calls' (dialplan channels only). Lower than 'Calls now' on ARI boxes \u2014 that is expected.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 13,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_core_current_calls{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 12,
+      "title": "Call attempts / min",
+      "description": "New calls per minute (5 min average).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(asterisk_calls_total{job=~\"$job\",instance=~\"$instance\"}[5m])) * 60",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 13,
+      "title": "ASR (15 min)",
+      "description": "Answered \u00f7 attempted calls over the last 15 min. Compare against your normal level; a sharp drop usually means a carrier/route problem.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 13,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * sum(increase(asterisk_calls_answered_total{job=~\"$job\",instance=~\"$instance\"}[15m])) / clamp_min(sum(increase(asterisk_calls_total{job=~\"$job\",instance=~\"$instance\"}[15m])), 1)",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "fixed"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 14,
+      "title": "Long calls now",
+      "description": "Calls older than each threshold (-long-call-thresholds). Many very long calls with no audio usually means stuck/zombie channels.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 13,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(sum by (over) (asterisk_long_calls{job=~\"$job\",instance=~\"$instance\"}), \"over\", \"0$1\", \"over\", \"^([0-9][smh])$\")",
+          "legendFormat": ">{{over}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {
+          "valueSize": 22,
+          "titleSize": 12
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "id": 15,
+      "title": "Unreachable SIP peers",
+      "description": "chan_sip peers in UNREACHABLE or LAGGED state. 0 is healthy. See the Trunks section for which ones.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(asterisk_sip_peer_status{job=~\"$job\",instance=~\"$instance\",status=~\"UNREACHABLE|LAGGED\"}) or vector(0)",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 16,
+      "title": "Unavailable PJSIP contacts",
+      "description": "PJSIP contacts not answering qualify (OPTIONS). 0 is healthy.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 17,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(asterisk_pjsip_contact_rtt_ms{job=~\"$job\",instance=~\"$instance\",status=~\"Unavail|Unreachable\"}) or vector(0)",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 17,
+      "title": "Empty bridges",
+      "description": "Bridges with 0 channels. A few briefly is normal; a number that only grows means an ARI app is not destroying bridges (memory leak).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 17,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_bridges_empty{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 18,
+      "title": "Stasis (ARI) channels",
+      "description": "Channels currently controlled by an ARI application.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_stasis_active_channels{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 19,
+      "title": "Task backlog now",
+      "description": "Highest queue length across Asterisk taskprocessor types. Should be ~0; sustained values mean Asterisk is overloaded.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 17,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(asterisk_taskprocessor_in_queue{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 450
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 20,
+      "title": "Exporter dropped events (1h)",
+      "description": "AMI events the exporter had to drop because it could not keep up. Must be 0; otherwise counters undercount.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 17,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(asterisk_exporter_events_dropped_total{job=~\"$job\",instance=~\"$instance\"}[1h]))",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 21,
+      "title": "SIP regs down",
+      "description": "Outbound chan_sip registrations that are NOT 'Registered' right now (total minus registered). 0 = all trunks registered. Only meaningful on boxes that register out.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "clamp_min(sum(asterisk_sip_registrations_total{job=~\"$job\",instance=~\"$instance\"}) - sum(asterisk_sip_registrations_registered{job=~\"$job\",instance=~\"$instance\"}), 0)",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "noValue": "N/A",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "state-timeline",
+      "id": 22,
+      "title": "Availability history",
+      "description": "Green = up, red = down, per server. Use it to see when Asterisk, AMI or ARI went away and for how long.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_up{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} Asterisk",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_ami_connected{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} AMI",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_ari_up{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} ARI",
+          "refId": "C",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "alignValue": "left",
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 23,
+      "title": "Calls & channels",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "id": 24,
+      "title": "Calls and channels",
+      "description": "Channels = call legs (load). Calls = conversations. 'Asterisk active calls' = Asterisk's own dialplan-only count.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_active_channels{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "Channels",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_active_calls{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "Calls",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_core_current_calls{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "Asterisk active calls",
+          "refId": "C",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 25,
+      "title": "Call attempts and answers per minute",
+      "description": "New calls and answered calls per minute (5 min average). The gap between the two lines is unanswered calls.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(asterisk_calls_total{job=~\"$job\",instance=~\"$instance\"}[5m])) * 60",
+          "legendFormat": "Attempts / min",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(asterisk_calls_answered_total{job=~\"$job\",instance=~\"$instance\"}[5m])) * 60",
+          "legendFormat": "Answered / min",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 26,
+      "title": "ASR %",
+      "description": "Answered \u00f7 attempted, 15 min window. Watch for drops against your usual level.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "100 * sum(increase(asterisk_calls_answered_total{job=~\"$job\",instance=~\"$instance\"}[15m])) / clamp_min(sum(increase(asterisk_calls_total{job=~\"$job\",instance=~\"$instance\"}[15m])), 1)",
+          "legendFormat": "ASR %",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "max": 100,
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 27,
+      "title": "Channels by state",
+      "description": "Up = talking, Ring/Ringing = waiting for answer, Down = not yet connected (or stuck). A growing Down/Ring share with flat Up = calls are not connecting.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (state) (asterisk_channels_by_state{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{state}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 28,
+      "title": "Channels by dialplan context",
+      "description": "Where the traffic is in the dialplan (route / customer view).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (context) (asterisk_channels_by_context{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{context}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 29,
+      "title": "Long-running calls",
+      "description": "Calls older than each threshold. Lines that never come down = stuck channels holding capacity.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(sum by (over) (asterisk_long_calls{job=~\"$job\",instance=~\"$instance\"}), \"over\", \"0$1\", \"over\", \"^([0-9][smh])$\")",
+          "legendFormat": ">{{over}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 30,
+      "title": "Hangups per minute by cause",
+      "description": "Why calls end (Q.850 cause codes, 5 min average). 16 = normal. Spikes in 1/3/28 (bad numbers), 17/19/21 (busy/no answer/rejected) or 34/38/41/42 (network/congestion) point to routing or carrier problems.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (cause) (rate(asterisk_calls_hangup_total{job=~\"$job\",instance=~\"$instance\"}[5m])) * 60",
+          "legendFormat": "{{cause}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 50,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      },
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^0$",
+            "renamePattern": "0 \u00b7 Not set"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^1$",
+            "renamePattern": "1 \u00b7 Unallocated number"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^3$",
+            "renamePattern": "3 \u00b7 No route"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^16$",
+            "renamePattern": "16 \u00b7 Normal clearing"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^17$",
+            "renamePattern": "17 \u00b7 User busy"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^18$",
+            "renamePattern": "18 \u00b7 No user responding"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^19$",
+            "renamePattern": "19 \u00b7 No answer"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^21$",
+            "renamePattern": "21 \u00b7 Call rejected"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^27$",
+            "renamePattern": "27 \u00b7 Destination out of order"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^28$",
+            "renamePattern": "28 \u00b7 Invalid number format"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^31$",
+            "renamePattern": "31 \u00b7 Normal, unspecified"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^34$",
+            "renamePattern": "34 \u00b7 No circuit available"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^38$",
+            "renamePattern": "38 \u00b7 Network out of order"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^41$",
+            "renamePattern": "41 \u00b7 Temporary failure"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^42$",
+            "renamePattern": "42 \u00b7 Switching congestion"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^44$",
+            "renamePattern": "44 \u00b7 Channel not available"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^47$",
+            "renamePattern": "47 \u00b7 Resource unavailable"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^58$",
+            "renamePattern": "58 \u00b7 Bearer not available"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^63$",
+            "renamePattern": "63 \u00b7 Service not available"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^102$",
+            "renamePattern": "102 \u00b7 Timer expired"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^127$",
+            "renamePattern": "127 \u00b7 Interworking"
+          }
+        }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "id": 31,
+      "title": "Hangup causes \u2014 selected time range",
+      "description": "Share of each hangup cause over the time range picked at the top.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sort_desc(sum by (cause) (increase(asterisk_calls_hangup_total{job=~\"$job\",instance=~\"$instance\"}[$__range])))",
+          "legendFormat": "{{cause}}",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "text",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "minVizHeight": 16,
+        "maxVizHeight": 24
+      },
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^0$",
+            "renamePattern": "0 \u00b7 Not set"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^1$",
+            "renamePattern": "1 \u00b7 Unallocated number"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^3$",
+            "renamePattern": "3 \u00b7 No route"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^16$",
+            "renamePattern": "16 \u00b7 Normal clearing"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^17$",
+            "renamePattern": "17 \u00b7 User busy"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^18$",
+            "renamePattern": "18 \u00b7 No user responding"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^19$",
+            "renamePattern": "19 \u00b7 No answer"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^21$",
+            "renamePattern": "21 \u00b7 Call rejected"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^27$",
+            "renamePattern": "27 \u00b7 Destination out of order"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^28$",
+            "renamePattern": "28 \u00b7 Invalid number format"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^31$",
+            "renamePattern": "31 \u00b7 Normal, unspecified"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^34$",
+            "renamePattern": "34 \u00b7 No circuit available"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^38$",
+            "renamePattern": "38 \u00b7 Network out of order"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^41$",
+            "renamePattern": "41 \u00b7 Temporary failure"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^42$",
+            "renamePattern": "42 \u00b7 Switching congestion"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^44$",
+            "renamePattern": "44 \u00b7 Channel not available"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^47$",
+            "renamePattern": "47 \u00b7 Resource unavailable"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^58$",
+            "renamePattern": "58 \u00b7 Bearer not available"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^63$",
+            "renamePattern": "63 \u00b7 Service not available"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^102$",
+            "renamePattern": "102 \u00b7 Timer expired"
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^127$",
+            "renamePattern": "127 \u00b7 Interworking"
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 32,
+      "title": "Trunks & endpoints",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "id": 33,
+      "title": "chan_sip peers \u2014 status now",
+      "description": "One row per peer. RTT (ms) from qualify; colour: green < 150 ms, yellow < 300 ms, red above. Negative codes show as text (UNREACHABLE etc.). Use -trunkfile to hide extensions you don't care about.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 65,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_sip_peer_status{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true
+            },
+            "indexByName": {
+              "instance": 0,
+              "sipname": 1,
+              "host": 2,
+              "status": 3,
+              "Value": 4
+            },
+            "renameByName": {
+              "Value": "RTT (ms)"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "instance",
+                "sipname",
+                "host",
+                "status",
+                "RTT (ms)"
+              ]
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 150
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-1": {
+                  "text": "UNREACHABLE",
+                  "color": "red"
+                },
+                "-2": {
+                  "text": "UNKNOWN",
+                  "color": "text"
+                },
+                "-3": {
+                  "text": "LAGGED",
+                  "color": "orange"
+                },
+                "-4": {
+                  "text": "UNMONITORED",
+                  "color": "text"
+                },
+                "-5": {
+                  "text": "OTHER",
+                  "color": "text"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RTT (ms)"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "RTT (ms)",
+            "desc": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 34,
+      "title": "chan_sip peer RTT",
+      "description": "Qualify round-trip time per reachable peer. Rising RTT usually precedes call-quality complaints.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 65,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_sip_peer_status{job=~\"$job\",instance=~\"$instance\",status=\"OK\"}",
+          "legendFormat": "{{sipname}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 150
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "table",
+      "id": 35,
+      "title": "PJSIP contacts \u2014 status now",
+      "description": "One row per PJSIP contact. RTT (ms) from qualify; -1 means not reachable / not qualified.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 74,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_pjsip_contact_rtt_ms{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true
+            },
+            "indexByName": {
+              "instance": 0,
+              "endpoint": 1,
+              "status": 2,
+              "Value": 3
+            },
+            "renameByName": {
+              "Value": "RTT (ms)"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "instance",
+                "endpoint",
+                "status",
+                "RTT (ms)"
+              ]
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 150
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-1": {
+                  "text": "no RTT",
+                  "color": "red"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RTT (ms)"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "RTT (ms)",
+            "desc": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 36,
+      "title": "PJSIP contact RTT",
+      "description": "Qualify round-trip time per available contact.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 74,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_pjsip_contact_rtt_ms{job=~\"$job\",instance=~\"$instance\",status=~\"Avail|Reachable\"}",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 150
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 37,
+      "title": "chan_sip channels by trunk",
+      "description": "Active chan_sip channels per trunk (all states).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 83,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (trunk) (asterisk_sip_channel_detail{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{trunk}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 38,
+      "title": "PJSIP channels by endpoint",
+      "description": "Active channels per PJSIP endpoint.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 83,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (endpoint) (asterisk_pjsip_endpoint_channels{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "table",
+      "id": 39,
+      "title": "chan_sip outbound registrations \u2014 now",
+      "description": "One row per outbound registration from 'sip show registry'. State shows the raw Asterisk state (Registered / Request Sent / Rejected / ...). Value 1 = Registered, 0 = anything else. Empty on boxes that do not register out.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 91,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_sip_registry_status{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true
+            },
+            "indexByName": {
+              "instance": 0,
+              "host": 1,
+              "username": 2,
+              "state": 3,
+              "Value": 4
+            },
+            "renameByName": {
+              "Value": "Registered"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "instance",
+                "host",
+                "username",
+                "state",
+                "Registered"
+              ]
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "NOT REGISTERED",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Registered",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Registered"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Registered",
+            "desc": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 40,
+      "title": "Outbound registrations: total vs registered",
+      "description": "How many outbound trunks are configured vs. how many are currently Registered. A gap between the two = a provider registration is down.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 91,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_sip_registrations_total{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "Configured",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_sip_registrations_registered{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "Registered",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    },
+    {
+      "type": "bargauge",
+      "id": 41,
+      "title": "Outbound dials by trunk \u2014 now",
+      "description": "Channels currently dialling out through each trunk (one per dialling channel; the answering legs are not counted). Same number as counting Dial lines for that trunk in core show channels. Calls placed by Queue, Originate or ARI without Dial are not included.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 100,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sort_desc(sum by (trunk) (asterisk_outbound_dials{job=~\"$job\",instance=~\"$instance\"}))",
+          "legendFormat": "{{trunk}}",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "text",
+        "namePlacement": "left",
+        "sizing": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "minVizHeight": 16,
+        "maxVizHeight": 24
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 42,
+      "title": "Outbound dials by trunk",
+      "description": "How many channels were dialling out through each trunk over time. A trunk dropping to zero while others keep dialling usually means that route is down or removed from the dialplan.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 100,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (trunk) (asterisk_outbound_dials{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{trunk}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 40,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 43,
+      "title": "Voice quality (QoS)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 108,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "text",
+      "id": 44,
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 109,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**How to read QoS.** Values are averaged over calls that are currently up and have enough audio (very short or one-way legs are skipped, see *QoS sample size*).\nRough guide: **packet loss** < 1 % good, > 3 % audible \u00b7 **jitter** < 30 ms good \u00b7 **RTT** < 150 ms good. chan_sip is grouped by peer **IP**, PJSIP by **endpoint**.\nA one-way leg (e.g. recording) reports no value for the silent direction instead of a fake 100 % loss."
+      },
+      "transparent": true
+    },
+    {
+      "type": "timeseries",
+      "id": 45,
+      "title": "PJSIP packet loss %",
+      "description": "Lost \u00f7 (received + lost) per endpoint, receive and transmit direction.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 112,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_pjsip_qos_packet_loss_rx_percent{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{endpoint}} rx",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_pjsip_qos_packet_loss_tx_percent{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{endpoint}} tx",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 46,
+      "title": "PJSIP jitter",
+      "description": "Average jitter per endpoint (ms).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 112,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_pjsip_qos_avg_jitter_rx_ms{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{endpoint}} rx",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_pjsip_qos_avg_jitter_tx_ms{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{endpoint}} tx",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 47,
+      "title": "PJSIP media RTT",
+      "description": "Round-trip time measured on live calls (RTCP), per endpoint. Endpoints that do not send RTCP have no line.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 120,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_pjsip_qos_avg_rtt_ms{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 150
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 48,
+      "title": "chan_sip packet loss %",
+      "description": "Lost \u00f7 (received + lost) per remote peer IP.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 120,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_sip_qos_packet_loss_rx_percent{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{peer}} rx",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_sip_qos_packet_loss_tx_percent{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{peer}} tx",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 49,
+      "title": "chan_sip jitter",
+      "description": "Average jitter per remote peer IP (ms).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 128,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_sip_qos_avg_jitter_rx_ms{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{peer}} rx",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "asterisk_sip_qos_avg_jitter_tx_ms{job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{peer}} tx",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 50,
+      "title": "QoS sample size",
+      "description": "How many calls the QoS numbers are based on (measured) vs. skipped as too short / no audio. A QoS value from 1\u20132 calls is weak evidence.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 128,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_pjsip_qos_channels_measured{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "PJSIP measured",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_pjsip_qos_channels_skipped{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "PJSIP skipped",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_sip_qos_channels_measured{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "chan_sip measured",
+          "refId": "C",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_sip_qos_channels_skipped{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "chan_sip skipped",
+          "refId": "D",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 51,
+      "title": "ARI / Stasis",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 136,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "id": 52,
+      "title": "Channels in Stasis (ARI apps)",
+      "description": "Channels currently handed to ARI applications.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 137,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_stasis_active_channels{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "Stasis channels",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 53,
+      "title": "Registered ARI apps",
+      "description": "Number of ARI applications connected to Asterisk. A drop (or 0) means apps disconnected and their calls will fail. Per-group lines appear only if -ari-app-group-regex is set.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 137,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_ari_apps_registered{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "All apps",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (group) (asterisk_ari_apps_registered_by_group{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{group}}",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 54,
+      "title": "Bridges: total vs empty",
+      "description": "Bridges by type and how many have no channels. Empty stasis bridges that only grow = ARI app not destroying bridges (leak).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 145,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (type) (asterisk_bridges{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{type}} total",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (type) (asterisk_bridges_empty{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{type}} empty",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 55,
+      "title": "Oldest empty bridge age",
+      "description": "How long the oldest empty bridge has existed (from ARI). If this keeps climbing for days, bridges are leaking; it resets only when Asterisk restarts or the bridge is destroyed.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 145,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(asterisk_ari_oldest_empty_bridge_age_seconds{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "Oldest empty bridge",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 56,
+      "title": "Asterisk internals",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 153,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "id": 57,
+      "title": "Taskprocessor queue now",
+      "description": "Tasks waiting inside Asterisk, by subsystem. Normally ~0. Sustained growth = Asterisk cannot keep up (CPU, slow ARI app, slow DB). Dashed line = Asterisk's default high-water mark (500).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 154,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (type) (asterisk_taskprocessor_in_queue{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{type}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 58,
+      "title": "Taskprocessor peak depth",
+      "description": "Highest queue length seen since Asterisk started, by subsystem. A step up means a backlog happened at that time.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 154,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (type) (asterisk_taskprocessor_max_depth{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "{{type}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 59,
+      "title": "Asterisk calls processed / min",
+      "description": "Asterisk's own processed-calls counter, as a rate.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 162,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(asterisk_calls_processed_total{job=~\"$job\",instance=~\"$instance\"}[5m])) * 60",
+          "legendFormat": "Calls processed / min",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 60,
+      "title": "Exporter health",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 170,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "id": 61,
+      "title": "Textfile files skipped",
+      "description": "Custom metric files (textfile collector) that could not be used on the last scrape \u2014 the exporter log says why. N/A means the textfile collector is not enabled.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 171,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(asterisk_textfile_scrape_error{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "noValue": "N/A",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "stat",
+      "id": 62,
+      "title": "Oldest textfile age",
+      "description": "Time since the least recently updated custom metric file was written. If this keeps growing, the script that writes it has stopped.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 171,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "time() - min(asterisk_textfile_mtime_seconds{job=~\"$job\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "mappings": [],
+          "noValue": "N/A",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "text": {}
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 63,
+      "title": "AMI events per second",
+      "description": "Events the exporter received (processed) and dropped. Dropped must stay at 0.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 171,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(asterisk_exporter_events_processed_total{job=~\"$job\",instance=~\"$instance\"}[5m]))",
+          "legendFormat": "Processed / s",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(asterisk_exporter_events_dropped_total{job=~\"$job\",instance=~\"$instance\"}[5m]))",
+          "legendFormat": "Dropped / s",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 64,
+      "title": "Collection errors per minute",
+      "description": "Failed AMI polls and failed ARI polls. Occasional blips are fine; a steady rate means a permission or connectivity problem.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 179,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(asterisk_exporter_scrape_errors_total{job=~\"$job\",instance=~\"$instance\"}[5m])) * 60",
+          "legendFormat": "AMI poll errors / min",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(asterisk_ari_scrape_errors_total{job=~\"$job\",instance=~\"$instance\"}[5m])) * 60",
+          "legendFormat": "ARI poll errors / min",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisBorderShow": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "axisPlacement": "auto",
+            "pointSize": 5
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        }
+      }
+    }
+  ],
+  "links": []
+}
